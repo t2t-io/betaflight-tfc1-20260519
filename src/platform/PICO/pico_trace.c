@@ -24,6 +24,7 @@
 #include "pico/stdio.h"
 #include "pico/stdio_uart.h"
 #include "pico/platform/compiler.h"
+#include "build/debug_print.h"
 
 static int depth;
 
@@ -54,6 +55,7 @@ int WRAPPER_FUNC(main)(int argc, char * argv[])
 {
     //stdio_init_all();
     stdio_uart_init_full(UART_INSTANCE(PICO_TRACE_UART_INSTANCE), 115200, PICO_TRACE_TX_GPIO, PICO_TRACE_RX_GPIO);
+    stdio_printf("\n\n=== Betaflight trace enabled === (%s, %s)\n", __DATE__, __TIME__);
     tprintf("\n=== Betaflight main ===");
     depth++;
     int mr = REAL_FUNC(main)(argc, argv);

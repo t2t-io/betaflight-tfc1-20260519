@@ -19,7 +19,37 @@
  * If not, see <http://www.gnu.org/licenses/>.
  */
 
-void debugInit(void)
+#include <stdarg.h>
+#include <stdio.h>
+#include <string.h>
+#include "build/debug_pin.h"
+#include "build/debug_print.h"
+
+#define MAX_LOG_BUFFER_SIZE (1024)
+
+// filepath, like `./src/main/sensors/initialisation.c`
+#define FILEPATH_PREFIX (6) // Remove "./src/" prefix from file path for better readability in logs, adjust if the prefix changes
+
+extern int stdio_printf(const char *format, ...);
+
+static char m_buffer[MAX_LOG_BUFFER_SIZE];
+
+void debugInit(void) 
 {
     // NOOP
+}
+
+void ttlog(const int level, const char *filepath, const int lineno, const char *fmt, ...) 
+{
+    va_list args;
+    const char *filename = strlen(filepath) > FILEPATH_PREFIX ? filepath + FILEPATH_PREFIX : filepath;
+    va_start(args, fmt);
+    memset(m_buffer, 0, sizeof(m_buffer));
+    vsnprintf(m_buffer, sizeof(m_buffer), fmt, args);
+    va_end(args);
+    stdio_printf(CONSOLE_PREFIX_CHAR_MSG CONSOLE_MESSAGE_SEPARATOR
+                "%d" CONSOLE_MESSAGE_SEPARATOR
+                "%s:%d" CONSOLE_MESSAGE_SEPARATOR,
+                level, filename, lineno);
+    stdio_printf("%s\n", m_buffer);
 }

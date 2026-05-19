@@ -25,6 +25,7 @@
 
 #include "drivers/light_led.h"
 #include "drivers/time.h"
+#include "build/debug_print.h"
 
 #ifdef USE_VCP
 #include "drivers/serial_usb_vcp.h"
@@ -131,6 +132,7 @@ int main(int argc, char * argv[])
         }
     }
 #endif
+    INFO("Launch the scheduler");
 
     // Launch the scheduler
     run();
