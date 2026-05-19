@@ -83,6 +83,7 @@ void pgResetFn_barometerConfig(barometerConfig_t *barometerConfig)
     defined(DEFAULT_BARO_BMP280) || defined(DEFAULT_BARO_SPI_MS5611) || defined(DEFAULT_BARO_MS5611) || \
     defined(DEFAULT_BARO_BMP085) || defined(DEFAULT_BARO_SPI_LPS) || defined(DEFAULT_BARO_SPI_QMP6988) || \
     defined(DEFAULT_BARO_QMP6988)) || defined(DEFAULT_BARO_DPS310) || defined(DEFAULT_BARO_SPI_DPS310) || \
+    defined(DEFAULT_BARO_BMP580) || defined(DEFAULT_BARO_BMP581) || \
     defined(DEFAULT_BARO_LPS22DF) || defined(DEFAULT_BARO_SPI_LPS22DF)
 
 #if defined(USE_BARO_DPS310) || defined(USE_BARO_SPI_DPS310)
@@ -119,6 +120,10 @@ void pgResetFn_barometerConfig(barometerConfig_t *barometerConfig)
 #define DEFAULT_BARO_SPI_LPS
 #elif defined(DEFAULT_BARO_BMP085)
 #define DEFAULT_BARO_BMP085
+#elif defined(USE_BARO_BMP580)
+#define DEFAULT_BARO_BMP580
+#elif defined(USE_BARO_BMP581)
+#define DEFAULT_BARO_BMP581
 #endif
 #elif defined(USE_BARO_2SMBP_02B) || defined(USE_BARO_SPI_2SMBP_02B)
 #if defined(USE_BARO_SPI_2SMBP_02B)
