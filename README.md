@@ -9,7 +9,7 @@ The repository is forked from [f5e4e49](https://github.com/betaflight/betaflight
 
 ![](https://www.t2tx.com/images/tfc1-1_hu_80d2fd48e300b812.webp)
 
-TFC1 is a flight controller board designed for fixed-wing drones, developed by [T2T Inc](https://www.t2t.io). It is based on the Raspberry Pi RP2354B microcontroller, which features a dual-core Arm Cortex-M0+ processor running at up to 133 MHz, 264 KB of RAM, and 8 MB of flash memory. The TFC1 flight controller is equipped with various sensors and interfaces, including an IMU (Inertial Measurement Unit), barometer, magnetometer, and multiple UART ports for communication with peripherals.
+`TFC1` is a flight controller board designed for fixed-wing drones, developed by [T2T Inc](https://www.t2t.io). It is based on the Raspberry Pi RP2354B microcontroller, which features a dual-core Arm Cortex-M0+ processor running at up to 133 MHz, 264 KB of RAM, and 8 MB of flash memory. The TFC1 flight controller is equipped with various sensors and interfaces, including an IMU (Inertial Measurement Unit), barometer, magnetometer, and multiple UART ports for communication with peripherals.
 
 
 ## Quick Development Guide for Betaflight on TFC1
