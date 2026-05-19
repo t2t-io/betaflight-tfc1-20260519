@@ -325,6 +325,66 @@ void mscTask(void)
 {
     tud_task();
 }
+
+#else
+
+#include <string.h>
+bool pico_msc_active = false;
+
+int32_t tud_msc_read10_cb(uint8_t lun, uint32_t lba, uint32_t offset, void *buffer, uint32_t bufsize)
+{
+    UNUSED(lun);
+    UNUSED(lba);
+    UNUSED(offset);
+    UNUSED(buffer);
+    UNUSED(bufsize);
+    // Return -1 to indicate unsupported command
+    return -1;
+}
+
+int32_t tud_msc_scsi_cb(uint8_t lun, const uint8_t scsi_cmd[16], void* buffer, uint16_t bufsize)
+{
+    UNUSED(lun);
+    UNUSED(scsi_cmd);
+    UNUSED(buffer);
+    UNUSED(bufsize);
+    // Return -1 to indicate unsupported command
+    return -1;
+}
+
+int32_t tud_msc_write10_cb(uint8_t lun, uint32_t lba, uint32_t offset, uint8_t *buffer, uint32_t bufsize)
+{
+    UNUSED(lun);
+    UNUSED(lba);
+    UNUSED(offset);
+    UNUSED(buffer);
+    UNUSED(bufsize);
+    // Return -1 to indicate unsupported command
+    return -1;
+}
+
+void tud_msc_capacity_cb(uint8_t lun, uint32_t *block_count, uint16_t *block_size)
+{
+    UNUSED(lun);
+    *block_count = 0;
+    *block_size = (uint16_t)512;
+}
+
+bool tud_msc_test_unit_ready_cb(uint8_t lun)
+{
+    UNUSED(lun);
+    return false;
+}
+
+void tud_msc_inquiry_cb(uint8_t lun, uint8_t vendor_id[8], uint8_t product_id[16], uint8_t product_rev[4])
+{
+    UNUSED(lun);
+    const char vid[8] = { 'B','e','t','a','F','l','t',' ' };
+    const char pid[16] = { 'M','S','C',' ','S','t','o','r','a','g','e',' ',' ',' ',' ',' ' };
+    const char rev[4] = { '0','.','0','1' };
+    memcpy(vendor_id, vid, 8);
+    memcpy(product_id, pid, 16);
+    memcpy(product_rev, rev, 4);
+}
+
 #endif // USE_USB_MSC
-
-
