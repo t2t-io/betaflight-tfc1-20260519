@@ -35,6 +35,7 @@
 #include "build/build_config.h"
 #include "build/debug.h"
 #include "build/version.h"
+#include "build/debug_print.h"
 
 #include "common/axis.h"
 #include "common/encoding.h"
@@ -467,6 +468,19 @@ static blackboxMainState_t* blackboxHistory[3];
 static bool blackboxModeActivationConditionPresent = false;
 
 /**
+ * Debug blackbox throughputs
+ */
+static char m_tempString[1024] = {0}; // Used for building up strings to write to the log, we reuse the same buffer to save RAM
+static int m_tmpCounter = 0;
+static int m_successfulIntraFrameCount = 0; // I frame
+static int m_successfulInterFrameCount = 0; // P frame
+static int m_successfulInterFrameBytes = 0;
+static int m_failedInterFrameCount = 0; // P frame
+static int m_failedInterFrameBytes = 0;
+static int m_headerFielCount = 0;
+extern void blackboxGetStats(int *dropped, int *written, bool reset);
+
+/**
  * Return true if it is safe to edit the Blackbox configuration.
  */
 bool blackboxMayEditConfig(void)
@@ -658,6 +672,7 @@ static void writeIntraframe(void)
 {
     blackboxMainState_t *blackboxCurrent = blackboxHistory[0];
 
+    m_successfulIntraFrameCount++;
     blackboxWrite('I');
 
     blackboxWriteUnsignedVB(blackboxIteration);
@@ -824,6 +839,7 @@ static void writeInterframe(void)
     blackboxMainState_t *blackboxCurrent = blackboxHistory[0];
     blackboxMainState_t *blackboxLast = blackboxHistory[1];
 
+    blackboxGetStats(NULL, NULL, true);
     blackboxWrite('P');
 
     //No need to store iteration count since its delta is always 1
@@ -836,6 +852,26 @@ static void writeInterframe(void)
 
     int32_t deltas[8];
     int32_t setpointDeltas[4];
+
+    memset(m_tempString, 0, sizeof(m_tempString));
+    m_tmpCounter = 0;
+    if (testBlackboxCondition(CONDITION(PID))) { strcat(m_tempString + strlen(m_tempString), "PID,"); m_tmpCounter++; }
+    if (testBlackboxCondition(CONDITION(RC_COMMANDS))) { strcat(m_tempString + strlen(m_tempString), "RC_COMMANDS,"); m_tmpCounter++; }
+    if (testBlackboxCondition(CONDITION(SETPOINT))) { strcat(m_tempString + strlen(m_tempString), "SETPOINT,"); m_tmpCounter++; }
+    if (testBlackboxCondition(CONDITION(VBAT))) { strcat(m_tempString + strlen(m_tempString), "VBAT,"); m_tmpCounter++; }
+    if (testBlackboxCondition(CONDITION(AMPERAGE_ADC))) { strcat(m_tempString + strlen(m_tempString), "AMPERAGE_ADC,"); m_tmpCounter++; }
+    if (testBlackboxCondition(CONDITION(MAG))) { strcat(m_tempString + strlen(m_tempString), "MAG,"); m_tmpCounter++; }
+    if (testBlackboxCondition(CONDITION(BARO))) { strcat(m_tempString + strlen(m_tempString), "BARO,"); m_tmpCounter++; }
+    if (testBlackboxCondition(CONDITION(RSSI))) { strcat(m_tempString + strlen(m_tempString), "RSSI,"); m_tmpCounter++; }
+    if (testBlackboxCondition(CONDITION(GYRO))) { strcat(m_tempString + strlen(m_tempString), "GYRO,"); m_tmpCounter++; }
+    if (testBlackboxCondition(CONDITION(GYROUNFILT))) { strcat(m_tempString + strlen(m_tempString), "GYROUNFILT,"); m_tmpCounter++; }
+    if (testBlackboxCondition(CONDITION(ACC))) { strcat(m_tempString + strlen(m_tempString), "ACC,"); m_tmpCounter++; }
+    if (testBlackboxCondition(CONDITION(ATTITUDE))) { strcat(m_tempString + strlen(m_tempString), "ATTITUDE,"); m_tmpCounter++; }
+    if (testBlackboxCondition(CONDITION(DEBUG_LOG))) { strcat(m_tempString + strlen(m_tempString), "DEBUG_LOG,"); m_tmpCounter++; }
+    if (testBlackboxCondition(CONDITION(SERVOS))) { strcat(m_tempString + strlen(m_tempString), "SERVOS"); m_tmpCounter++; }
+    if (m_tmpCounter < 11) {
+        DBG("Interframe conditions: %d", m_tmpCounter);
+    }
 
     if (testBlackboxCondition(CONDITION(PID))) {
         arraySubInt32(deltas, blackboxCurrent->axisPID_P, blackboxLast->axisPID_P, XYZ_AXIS_COUNT);
@@ -978,6 +1014,18 @@ static void writeInterframe(void)
     blackboxHistory[0] = ((blackboxHistory[0] - blackboxHistoryRing + 1) % 3) + blackboxHistoryRing;
 
     blackboxLoggedAnyFrames = true;
+
+    int dropped = 0;
+    int written = 0;
+    blackboxGetStats(&dropped, &written, true);
+    if (dropped > 0) {
+        m_failedInterFrameBytes += dropped;
+        m_failedInterFrameCount++;
+    }
+    else {
+        m_successfulInterFrameBytes += written;
+        m_successfulInterFrameCount++;
+    }
 }
 
 /* Write the contents of the global "slowHistory" to the log as an "S" frame. Because this data is logged so
@@ -985,6 +1033,21 @@ static void writeInterframe(void)
 static void writeSlowFrame(void)
 {
     int32_t values[3];
+
+    if (m_failedInterFrameBytes > 0) {
+        DBG("(S): %d I => %d +P (%d bytes), %d -P (%d bytes)", 
+            m_successfulIntraFrameCount,
+            m_successfulInterFrameCount, m_successfulInterFrameBytes, 
+            m_failedInterFrameCount, m_failedInterFrameBytes);
+    }
+    else {
+        DBG("(S): %d I => %d +P (%d bytes)", m_successfulIntraFrameCount, m_successfulInterFrameCount, m_successfulInterFrameBytes);
+    }
+    m_successfulIntraFrameCount = 0;
+    m_successfulInterFrameCount = 0;
+    m_successfulInterFrameBytes = 0;
+    m_failedInterFrameBytes = 0;
+    m_failedInterFrameCount = 0;
 
     blackboxWrite('S');
 
@@ -1427,6 +1490,12 @@ static bool sendFieldDefinition(char mainFrameChar, char deltaFrameChar, const v
                 // Do we need to print an index in brackets after the name?
                 if (def->fieldNameIndex != -1) {
                     blackboxPrintf("[%d]", def->fieldNameIndex);
+                    DBG("sendFieldDefinition(name): headerIndex=%d fieldIndex=%d name=%s[%d]", xmitState.headerIndex, xmitState.u.fieldIndex, def->name, def->fieldNameIndex);
+                    m_headerFielCount++;
+                }
+                else {
+                    DBG("sendFieldDefinition(name): headerIndex=%d fieldIndex=%d name=%s", xmitState.headerIndex, xmitState.u.fieldIndex, def->name);
+                    m_headerFielCount++;
                 }
             } else {
                 //The other headers are integers
@@ -1441,6 +1510,10 @@ static bool sendFieldDefinition(char mainFrameChar, char deltaFrameChar, const v
         blackboxWrite('\n');
         xmitState.headerIndex++;
         xmitState.u.fieldIndex = -1;
+    }
+
+    if (m_headerFielCount > 0) {
+        DBG("Total header fields sent: %d", m_headerFielCount);
     }
 
     return xmitState.headerIndex < headerCount;
@@ -2298,11 +2371,13 @@ void blackboxInit(void)
     // blackboxUpdate() is run in synchronisation with the PID loop
     // targetPidLooptime is 1000 for 1kHz loop, 500 for 2kHz loop etc, targetPidLooptime is rounded for short looptimes
     blackboxIInterval = (uint16_t)(32 * 1000 / targetPidLooptime);
+    DBG("blackboxInterval (I): %d", blackboxIInterval);
 
     blackboxPInterval = 1 << blackboxConfig()->sample_rate;
     if (blackboxPInterval > blackboxIInterval) {
         blackboxPInterval = 0; // log only I frames if logging frequency is too low
     }
+    DBG("blackboxInterval (P): %d", blackboxPInterval);
 
     if (blackboxConfig()->device) {
         blackboxSetState(BLACKBOX_STATE_STOPPED);
@@ -2310,6 +2385,7 @@ void blackboxInit(void)
         blackboxSetState(BLACKBOX_STATE_DISABLED);
     }
     blackboxSInterval = blackboxIInterval * 256; // S-frame is written every 256*32 = 8192ms, approx every 8 seconds
+    DBG("blackboxInterval (S): %d", blackboxSInterval);
 
     blackboxHighResolutionScale = blackboxConfig()->high_resolution ? 10.0f : 1.0f;
 }

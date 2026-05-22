@@ -42,6 +42,8 @@
 
 #define DEBUG_BB_OUTPUT
 
+#include "build/debug_print.h"
+
 #include "blackbox.h"
 #include "blackbox_io.h"
 
@@ -103,6 +105,22 @@ void blackboxOpen(void)
     }
 }
 
+static int m_dropped = 0;
+static int m_written = 0;
+void blackboxGetStats(int *dropped, int *written, bool reset)
+{
+    if (dropped) {
+        *dropped = m_dropped;
+    }
+    if (written) {
+        *written = m_written;
+    }
+    if (reset) {
+        m_dropped = 0;
+        m_written = 0;
+    }
+}
+
 #ifdef DEBUG_BB_OUTPUT
 static uint32_t bbBits;
 static timeMs_t bbLastclearMs;
@@ -143,12 +161,14 @@ void blackboxWrite(uint8_t value)
 #endif
 
             if (txBytesFree == 0) {
+                ++m_dropped;
 #ifdef DEBUG_BB_OUTPUT
                 ++bbDrops;
                 DEBUG_SET(DEBUG_BLACKBOX_OUTPUT, 2, bbDrops);
 #endif
                 return;
             }
+            ++m_written;
             serialWrite(blackboxPort, value);
         }
         break;
@@ -363,6 +383,7 @@ bool blackboxDeviceOpen(void)
                 break;
             };
 
+            DBG("blackboxPort=%p, txBuffer = %d bytes, rxBuffer = %d", blackboxPort, blackboxPort->txBufferSize, blackboxPort->rxBufferSize);
             return blackboxPort != NULL;
         }
         break;
