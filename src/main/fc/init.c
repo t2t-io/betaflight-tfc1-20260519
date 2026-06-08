@@ -715,7 +715,7 @@ void initPhase3(void)
         if (isSystemConfigured()) {
             indicateFailure(FAILURE_MISSING_ACC, 2);
         }
-        setArmingDisabled(ARMING_DISABLED_NO_GYRO);
+        SET_ARMING_DISABLED(ARMING_DISABLED_NO_GYRO);
     }
 
     systemState |= SYSTEM_STATE_SENSORS_READY;
@@ -1034,7 +1034,7 @@ void initPhase3(void)
     }
 #endif
 
-    setArmingDisabled(ARMING_DISABLED_BOOT_GRACE_TIME);
+    SET_ARMING_DISABLED(ARMING_DISABLED_BOOT_GRACE_TIME);
 
 // allocate SPI DMA streams before motor timers
 #if defined(USE_SPI) && defined(USE_SPI_DMA_ENABLE_EARLY)

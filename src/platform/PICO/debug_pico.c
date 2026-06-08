@@ -25,6 +25,7 @@
 #include "build/debug_pin.h"
 #include "build/debug_print.h"
 
+#if (PICO_TRACE) // Only enable debug print when PICO_TRACE is defined
 #define MAX_LOG_BUFFER_SIZE (1024)
 
 // filepath, like `./src/main/sensors/initialisation.c`
@@ -33,11 +34,6 @@
 extern int stdio_printf(const char *format, ...);
 
 static char m_buffer[MAX_LOG_BUFFER_SIZE];
-
-void debugInit(void) 
-{
-    // NOOP
-}
 
 void ttlog(const int level, const char *filepath, const int lineno, const char *fmt, ...) 
 {
@@ -53,3 +49,10 @@ void ttlog(const int level, const char *filepath, const int lineno, const char *
                 level, filename, lineno);
     stdio_printf("%s\n", m_buffer);
 }
+#endif
+
+void debugInit(void) 
+{
+    // NOOP
+}
+

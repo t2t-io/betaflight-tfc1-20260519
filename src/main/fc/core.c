@@ -293,7 +293,7 @@ if (crashFlipModeActive) {
         // Pilot has reverted the crash flip switch while crashflip is active and craft is  armed
         if (!mixerConfig()->crashflip_auto_rearm) {
             // we are in manual re-arm mode:  block arming until manual re-arm:
-            setArmingDisabled(ARMING_DISABLED_CRASHFLIP); // block tryArm() until user disarms manually
+            SET_ARMING_DISABLED(ARMING_DISABLED_CRASHFLIP); // block tryArm() until user disarms manually
             clearWasLastDisarmUserRequested();
             // tell disarm() that this was not a user generated disarm
             // also clear the flag in rc_controls so that it will only be true when the pilot makes a new user manual disarm
@@ -321,7 +321,7 @@ if (crashFlipModeActive) {
 #endif
 
         if (graceTimeElapsed) {
-            unsetArmingDisabled(ARMING_DISABLED_BOOT_GRACE_TIME);
+            UNSET_ARMING_DISABLED(ARMING_DISABLED_BOOT_GRACE_TIME);
         }
         // If switch is used for arming then check it is not defaulting to on when the RX link recovers from a fault
         if (!isUsingSticksForArming()) {
@@ -332,10 +332,10 @@ if (crashFlipModeActive) {
 
             if (justGotRxBack && IS_RC_MODE_ACTIVE(BOXARM)) {
                 // If the RX has just started to receive a signal again and the arm switch is on, apply arming restriction
-                setArmingDisabled(ARMING_DISABLED_NOT_DISARMED);
+                SET_ARMING_DISABLED(ARMING_DISABLED_NOT_DISARMED);
             } else if (haveRx && !IS_RC_MODE_ACTIVE(BOXARM)) {
                 // If RX signal is OK and the arm switch is off, remove arming restriction
-                unsetArmingDisabled(ARMING_DISABLED_NOT_DISARMED);
+                UNSET_ARMING_DISABLED(ARMING_DISABLED_NOT_DISARMED);
             }
         hadRx = haveRx;
         }
@@ -344,60 +344,60 @@ if (crashFlipModeActive) {
              // if, while disarmed, arming was blocked due to crashflip, eg in manual mode and the crashflip switch was reverted, watch for a manual user disarm
              if (wasLastDisarmUserRequested()) {
              // if there has been a new manual user disarm since the last time its flag was cleared, eg since the crashflip switch was reverted in manual mode
-                unsetArmingDisabled(ARMING_DISABLED_CRASHFLIP);
+                UNSET_ARMING_DISABLED(ARMING_DISABLED_CRASHFLIP);
                 // clear the armingDisabled block to permit re-arming
             }
         }
 
         if (IS_RC_MODE_ACTIVE(BOXFAILSAFE)) {
-            setArmingDisabled(ARMING_DISABLED_BOXFAILSAFE);
+            SET_ARMING_DISABLED(ARMING_DISABLED_BOXFAILSAFE);
         } else {
-            unsetArmingDisabled(ARMING_DISABLED_BOXFAILSAFE);
+            UNSET_ARMING_DISABLED(ARMING_DISABLED_BOXFAILSAFE);
         }
 
         if (IS_RC_MODE_ACTIVE(BOXALTHOLD)) {
-            setArmingDisabled(ARMING_DISABLED_ALTHOLD);
+            SET_ARMING_DISABLED(ARMING_DISABLED_ALTHOLD);
         } else {
-            unsetArmingDisabled(ARMING_DISABLED_ALTHOLD);
+            UNSET_ARMING_DISABLED(ARMING_DISABLED_ALTHOLD);
         }
 
         if (IS_RC_MODE_ACTIVE(BOXPOSHOLD)) {
-            setArmingDisabled(ARMING_DISABLED_POSHOLD);
+            SET_ARMING_DISABLED(ARMING_DISABLED_POSHOLD);
         } else {
-            unsetArmingDisabled(ARMING_DISABLED_POSHOLD);
+            UNSET_ARMING_DISABLED(ARMING_DISABLED_POSHOLD);
         }
 
         if (calculateThrottleStatus() != THROTTLE_LOW) {
-            setArmingDisabled(ARMING_DISABLED_THROTTLE);
+            SET_ARMING_DISABLED(ARMING_DISABLED_THROTTLE);
         } else {
-            unsetArmingDisabled(ARMING_DISABLED_THROTTLE);
+            UNSET_ARMING_DISABLED(ARMING_DISABLED_THROTTLE);
         }
 
         if (!isUpright() && !IS_RC_MODE_ACTIVE(BOXCRASHFLIP)) {
-            setArmingDisabled(ARMING_DISABLED_ANGLE);
+            SET_ARMING_DISABLED(ARMING_DISABLED_ANGLE);
         } else {
-            unsetArmingDisabled(ARMING_DISABLED_ANGLE);
+            UNSET_ARMING_DISABLED(ARMING_DISABLED_ANGLE);
         }
 
 #if defined(USE_LATE_TASK_STATISTICS)
         if ((getCpuPercentageLate() > schedulerConfig()->cpuLatePercentageLimit)) {
-            setArmingDisabled(ARMING_DISABLED_LOAD);
+            SET_ARMING_DISABLED(ARMING_DISABLED_LOAD);
         } else {
-            unsetArmingDisabled(ARMING_DISABLED_LOAD);
+            UNSET_ARMING_DISABLED(ARMING_DISABLED_LOAD);
         }
 #endif // USE_LATE_TASK_STATISTICS
 
         if (isCalibrating()) {
-            setArmingDisabled(ARMING_DISABLED_CALIBRATING);
+            SET_ARMING_DISABLED(ARMING_DISABLED_CALIBRATING);
         } else {
-            unsetArmingDisabled(ARMING_DISABLED_CALIBRATING);
+            UNSET_ARMING_DISABLED(ARMING_DISABLED_CALIBRATING);
         }
 
         if (isModeActivationConditionPresent(BOXPREARM)) {
             if (IS_RC_MODE_ACTIVE(BOXPREARM) && (!ARMING_FLAG(WAS_ARMED_WITH_PREARM) || armingConfig()->prearm_allow_rearm) ) {
-                unsetArmingDisabled(ARMING_DISABLED_NOPREARM);
+                UNSET_ARMING_DISABLED(ARMING_DISABLED_NOPREARM);
             } else {
-                setArmingDisabled(ARMING_DISABLED_NOPREARM);
+                SET_ARMING_DISABLED(ARMING_DISABLED_NOPREARM);
             }
         }
 
@@ -405,14 +405,14 @@ if (crashFlipModeActive) {
         if (gpsRescueIsConfigured()) {
             if (gpsRescueConfig()->allowArmingWithoutFix || (STATE(GPS_FIX) && (gpsSol.numSat >= gpsRescueConfig()->minSats)) ||
             ARMING_FLAG(WAS_EVER_ARMED) || IS_RC_MODE_ACTIVE(BOXCRASHFLIP)) {
-                unsetArmingDisabled(ARMING_DISABLED_GPS);
+                UNSET_ARMING_DISABLED(ARMING_DISABLED_GPS);
             } else {
-                setArmingDisabled(ARMING_DISABLED_GPS);
+                SET_ARMING_DISABLED(ARMING_DISABLED_GPS);
             }
             if (IS_RC_MODE_ACTIVE(BOXGPSRESCUE)) {
-                setArmingDisabled(ARMING_DISABLED_RESC);
+                SET_ARMING_DISABLED(ARMING_DISABLED_RESC);
             } else {
-                unsetArmingDisabled(ARMING_DISABLED_RESC);
+                UNSET_ARMING_DISABLED(ARMING_DISABLED_RESC);
             }
         }
 #endif
@@ -420,42 +420,42 @@ if (crashFlipModeActive) {
 #ifdef USE_DSHOT_TELEMETRY
         // If Dshot Telemetry is enabled and any motor isn't providing telemetry, then disable arming
         if (useDshotTelemetry && !isDshotTelemetryActive()) {
-            setArmingDisabled(ARMING_DISABLED_DSHOT_TELEM);
+            SET_ARMING_DISABLED(ARMING_DISABLED_DSHOT_TELEM);
         } else {
-            unsetArmingDisabled(ARMING_DISABLED_DSHOT_TELEM);
+            UNSET_ARMING_DISABLED(ARMING_DISABLED_DSHOT_TELEM);
         }
 #endif
 
 #ifdef USE_DSHOT_BITBANG
         if (isDshotBitbangActive(&motorConfig()->dev) && dshotBitbangGetStatus() != DSHOT_BITBANG_STATUS_OK) {
-            setArmingDisabled(ARMING_DISABLED_DSHOT_BITBANG);
+            SET_ARMING_DISABLED(ARMING_DISABLED_DSHOT_BITBANG);
         } else {
-            unsetArmingDisabled(ARMING_DISABLED_DSHOT_BITBANG);
+            UNSET_ARMING_DISABLED(ARMING_DISABLED_DSHOT_BITBANG);
         }
 #endif
 
         if (IS_RC_MODE_ACTIVE(BOXPARALYZE)) {
-            setArmingDisabled(ARMING_DISABLED_PARALYZE);
+            SET_ARMING_DISABLED(ARMING_DISABLED_PARALYZE);
         }
 
 #ifdef USE_ACC
         if (accNeedsCalibration()) {
-            setArmingDisabled(ARMING_DISABLED_ACC_CALIBRATION);
+            SET_ARMING_DISABLED(ARMING_DISABLED_ACC_CALIBRATION);
         } else {
-            unsetArmingDisabled(ARMING_DISABLED_ACC_CALIBRATION);
+            UNSET_ARMING_DISABLED(ARMING_DISABLED_ACC_CALIBRATION);
         }
 #endif
 
         if (!isMotorProtocolEnabled()) {
-            setArmingDisabled(ARMING_DISABLED_MOTOR_PROTOCOL);
+            SET_ARMING_DISABLED(ARMING_DISABLED_MOTOR_PROTOCOL);
         }
 
         if (!isUsingSticksForArming()) {
             if (!IS_RC_MODE_ACTIVE(BOXARM)) {
 #ifdef USE_RUNAWAY_TAKEOFF
-                unsetArmingDisabled(ARMING_DISABLED_RUNAWAY_TAKEOFF);
+                UNSET_ARMING_DISABLED(ARMING_DISABLED_RUNAWAY_TAKEOFF);
 #endif
-                unsetArmingDisabled(ARMING_DISABLED_CRASH_DETECTED);
+                UNSET_ARMING_DISABLED(ARMING_DISABLED_CRASH_DETECTED);
             }
 
             /* Ignore ARMING_DISABLED_CALIBRATING if we are going to calibrate gyro on first arm */
@@ -473,9 +473,9 @@ if (crashFlipModeActive) {
                 && !ignoreGyro
                 && !ignoreThrottle
                 && IS_RC_MODE_ACTIVE(BOXARM)) {
-                setArmingDisabled(ARMING_DISABLED_ARM_SWITCH);
+                SET_ARMING_DISABLED(ARMING_DISABLED_ARM_SWITCH);
             } else if (!IS_RC_MODE_ACTIVE(BOXARM)) {
-                unsetArmingDisabled(ARMING_DISABLED_ARM_SWITCH);
+                UNSET_ARMING_DISABLED(ARMING_DISABLED_ARM_SWITCH);
             }
         }
 
@@ -1246,7 +1246,7 @@ static FAST_CODE_NOINLINE void subTaskPidController(timeUs_t currentTimeUs)
             if (runawayTakeoffTriggerUs == 0) {
                 runawayTakeoffTriggerUs = currentTimeUs + RUNAWAY_TAKEOFF_ACTIVATE_DELAY;
             } else if (currentTimeUs > runawayTakeoffTriggerUs) {
-                setArmingDisabled(ARMING_DISABLED_RUNAWAY_TAKEOFF);
+                SET_ARMING_DISABLED(ARMING_DISABLED_RUNAWAY_TAKEOFF);
                 disarm(DISARM_REASON_RUNAWAY_TAKEOFF);
             }
         } else {

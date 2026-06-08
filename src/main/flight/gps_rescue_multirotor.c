@@ -387,7 +387,7 @@ static void performSanityChecks(void)
 
     // Crash detection is enabled in all rescues.  If triggered, immediately disarm.
     if (crashRecoveryModeActive()) {
-        setArmingDisabled(ARMING_DISABLED_ARM_SWITCH);
+        SET_ARMING_DISABLED(ARMING_DISABLED_ARM_SWITCH);
         disarm(DISARM_REASON_CRASH_PROTECTION);
         rescueStop();
     }
@@ -667,7 +667,7 @@ static bool checkGPSRescueIsAvailable(void)
 static void disarmOnImpact(void)
 {
     if (acc.accMagnitude > rescueState.intent.disarmThreshold) {
-        setArmingDisabled(ARMING_DISABLED_ARM_SWITCH);
+        SET_ARMING_DISABLED(ARMING_DISABLED_ARM_SWITCH);
         disarm(DISARM_REASON_GPS_RESCUE);
         rescueStop();
     }
@@ -880,7 +880,7 @@ void gpsRescueUpdate(void)
         break;
 
     case RESCUE_ABORT:
-        setArmingDisabled(ARMING_DISABLED_ARM_SWITCH);
+        SET_ARMING_DISABLED(ARMING_DISABLED_ARM_SWITCH);
         disarm(DISARM_REASON_FAILSAFE);
         rescueState.intent.secondsFailing = 0; // reset sanity timers so we can re-arm
         rescueStop();

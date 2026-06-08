@@ -3880,7 +3880,7 @@ static mspResult_e mspProcessInCommand(mspDescriptor_t srcDesc, int16_t cmdMSP, 
             if (command) {
 #if !ENABLE_SIMULATOR // In simulator mode we can safely arm with MSP link.
                 mspArmingDisableByDescriptor(srcDesc);
-                setArmingDisabled(ARMING_DISABLED_MSP);
+                SET_ARMING_DISABLED(ARMING_DISABLED_MSP);
                 if (ARMING_FLAG(ARMED)) {
                     disarm(DISARM_REASON_ARMING_DISABLED);
                 }
@@ -3891,7 +3891,7 @@ static mspResult_e mspProcessInCommand(mspDescriptor_t srcDesc, int16_t cmdMSP, 
             } else {
                 mspArmingEnableByDescriptor(srcDesc);
                 if (mspIsMspArmingEnabled()) {
-                    unsetArmingDisabled(ARMING_DISABLED_MSP);
+                    UNSET_ARMING_DISABLED(ARMING_DISABLED_MSP);
 #ifdef USE_RUNAWAY_TAKEOFF
                     runawayTakeoffTemporaryDisable(disableRunawayTakeoff);
 #endif

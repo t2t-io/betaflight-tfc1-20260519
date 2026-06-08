@@ -216,9 +216,9 @@ void processRcStickPositions(void)
                 // by a runaway pidSum detection auto-disarm.
                 // This forces the pilot to explicitly perform a disarm sequence (even though we're implicitly disarmed)
                 // before they're able to rearm
-                unsetArmingDisabled(ARMING_DISABLED_RUNAWAY_TAKEOFF);
+                UNSET_ARMING_DISABLED(ARMING_DISABLED_RUNAWAY_TAKEOFF);
 #endif
-                unsetArmingDisabled(ARMING_DISABLED_CRASH_DETECTED);
+                UNSET_ARMING_DISABLED(ARMING_DISABLED_CRASH_DETECTED);
             }
         }
         return;

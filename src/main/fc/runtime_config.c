@@ -24,6 +24,7 @@
 
 #include "platform.h"
 
+#include "build/debug_print.h"
 #include "fc/runtime_config.h"
 #include "io/beeper.h"
 
@@ -69,15 +70,49 @@ const char *armingDisableFlagNames[]= {
 STATIC_ASSERT(ARRAYLEN(armingDisableFlagNames) == ARMING_DISABLE_FLAGS_COUNT, armingDisableFlagNames_size_mismatch);
 
 static armingDisableFlags_e armingDisableFlags = 0;
+static armingDisableFlags_e lastArmingDisableFlag = 0;
+static int lastArmingDisableFlagRepeating = 0;
 
 void setArmingDisabled(armingDisableFlags_e flag)
 {
     armingDisableFlags = armingDisableFlags | flag;
 }
 
+void setArmingAdvDisabled(armingDisableFlags_e flag, const char *reason, const char *filename, int line)
+{
+    armingDisableFlags = armingDisableFlags | flag;
+    if (lastArmingDisableFlag == flag) {
+        lastArmingDisableFlagRepeating++;
+        if (lastArmingDisableFlagRepeating > 10) {
+            // avoid spamming the logs if the same flag is repeatedly set
+#if (PICO_TRACE) 
+            DBG("Arming disabled: %s (flag: %s, file: %s, line: %d)\n", reason, getArmingDisableFlagName(flag), filename, line);
+#else
+            UNUSED(reason);
+            UNUSED(filename);
+            UNUSED(line);
+#endif
+            lastArmingDisableFlagRepeating = 0;
+            return;
+        }
+    } else {
+        lastArmingDisableFlag = flag;
+        lastArmingDisableFlagRepeating = 0;
+    }
+}
+
 void unsetArmingDisabled(armingDisableFlags_e flag)
 {
     armingDisableFlags = armingDisableFlags & ~flag;
+}
+
+void unsetArmingAdvDisabled(armingDisableFlags_e flag, const char *reason, const char *filename, int line)
+{
+    armingDisableFlags = armingDisableFlags & ~flag;
+    UNUSED(reason);
+    UNUSED(filename);
+    UNUSED(line);
+    // DBG("Arming re-enabled: %s (flag: %s, file: %s, line: %d)\n", reason, getArmingDisableFlagName(flag), filename, line);
 }
 
 bool isArmingDisabled(void)

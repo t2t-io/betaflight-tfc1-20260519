@@ -904,7 +904,7 @@ void cmsMenuOpen(void)
 #endif // USE_OSD_QUICK_MENU
 
         menuStackIdx = 0;
-        setArmingDisabled(ARMING_DISABLED_CMS_MENU);
+        SET_ARMING_DISABLED(ARMING_DISABLED_CMS_MENU);
         displayLayerSelect(pCurrentDisplay, DISPLAYPORT_LAYER_FOREGROUND); // make sure the foreground layer is active
 #ifdef USE_OSD
         if (osdConfig()->cms_background_type != DISPLAY_BACKGROUND_TRANSPARENT) {
@@ -1033,7 +1033,7 @@ const void *cmsMenuExit(displayPort_t *pDisplay, const void *ptr)
         systemReset();
     }
 
-    unsetArmingDisabled(ARMING_DISABLED_CMS_MENU);
+    UNSET_ARMING_DISABLED(ARMING_DISABLED_CMS_MENU);
 
     return NULL;
 }

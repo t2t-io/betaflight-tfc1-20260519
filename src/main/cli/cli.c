@@ -8511,7 +8511,7 @@ void cliEnter(serialPort_t *serialPort, bool interactive)
         cliPrintLine("\r\nCLI");
 #endif
         // arming flag not released if exiting cli with no reboot for safety
-        setArmingDisabled(ARMING_DISABLED_CLI);
+        SET_ARMING_DISABLED(ARMING_DISABLED_CLI);
         cliPrompt();
 
 #ifdef USE_CLI_BATCH

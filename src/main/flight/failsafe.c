@@ -182,7 +182,7 @@ void failsafeOnValidDataReceived(void)
         failsafeState.validRxDataFailedAt = failsafeState.validRxDataReceivedAt;
         // prevent arming until we have valid data for rxDataRecoveryPeriod after initialisation
         // show RXLOSS in OSD to indicate reason we cannot arm
-        setArmingDisabled(ARMING_DISABLED_RX_FAILSAFE);
+        SET_ARMING_DISABLED(ARMING_DISABLED_RX_FAILSAFE);
     }
 
     if (cmp32(failsafeState.validRxDataReceivedAt, failsafeState.validRxDataFailedAt) > (int32_t)failsafeState.receivingRxDataPeriodPreset) {
@@ -191,7 +191,7 @@ void failsafeOnValidDataReceived(void)
         // link is not considered 'up', after it has been 'down', until that recovery period has expired
         failsafeState.rxLinkState = FAILSAFE_RXLINK_UP;
         // after the rxDataRecoveryPeriod, typically 1s after receiving valid data, clear RXLOSS in OSD and permit arming
-        unsetArmingDisabled(ARMING_DISABLED_RX_FAILSAFE);
+        UNSET_ARMING_DISABLED(ARMING_DISABLED_RX_FAILSAFE);
     }
 }
 
@@ -201,7 +201,7 @@ void failsafeOnValidDataFailed(void)
 // if failsafe is configured to go direct to stage 2, this is emulated immediately in failsafeUpdateState()
 {
     //  set RXLOSS in OSD and block arming after RXLOSS_TRIGGER_INTERVAL of frame loss
-    setArmingDisabled(ARMING_DISABLED_RX_FAILSAFE);
+    SET_ARMING_DISABLED(ARMING_DISABLED_RX_FAILSAFE);
 
     failsafeState.validRxDataFailedAt = millis();
     if ((cmp32(failsafeState.validRxDataFailedAt, failsafeState.validRxDataReceivedAt) > (int32_t)failsafeState.rxDataFailurePeriod)) {
@@ -218,7 +218,7 @@ void failsafeCheckDataFailurePeriod(void)
         // sets link DOWN after the stage 1 failsafe period, initiating stage 2
         failsafeState.rxLinkState = FAILSAFE_RXLINK_DOWN;
         // Prevent arming with no RX link
-        setArmingDisabled(ARMING_DISABLED_RX_FAILSAFE);
+        SET_ARMING_DISABLED(ARMING_DISABLED_RX_FAILSAFE);
     }
 }
 
@@ -389,7 +389,7 @@ FAST_CODE_NOINLINE void failsafeUpdateState(void)
 #endif
             case FAILSAFE_LANDED:
                 disarm(DISARM_REASON_FAILSAFE);
-                setArmingDisabled(ARMING_DISABLED_FAILSAFE);
+                SET_ARMING_DISABLED(ARMING_DISABLED_FAILSAFE);
                 //  prevent accidently rearming by an intermittent rx link
                 failsafeState.receivingRxDataPeriod = millis() + failsafeState.receivingRxDataPeriodPreset;
                 //  customise receivingRxDataPeriod according to type of failsafe
@@ -420,7 +420,7 @@ FAST_CODE_NOINLINE void failsafeUpdateState(void)
                 DISABLE_FLIGHT_MODE(GPS_RESCUE_MODE);
 #endif
                 DISABLE_FLIGHT_MODE(FAILSAFE_MODE);
-                unsetArmingDisabled(ARMING_DISABLED_FAILSAFE);
+                UNSET_ARMING_DISABLED(ARMING_DISABLED_FAILSAFE);
                 reprocessState = true;
                 break;
 

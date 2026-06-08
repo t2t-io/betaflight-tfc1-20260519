@@ -853,7 +853,7 @@ bool isSystemConfigured(void)
 void setRebootRequired(void)
 {
     rebootRequired = true;
-    setArmingDisabled(ARMING_DISABLED_REBOOT_REQUIRED);
+    SET_ARMING_DISABLED(ARMING_DISABLED_REBOOT_REQUIRED);
 }
 
 bool getRebootRequired(void)

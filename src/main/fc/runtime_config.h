@@ -73,8 +73,20 @@ typedef enum {
 
 #define ARMING_DISABLE_FLAGS_COUNT (LOG2(ARMING_DISABLED_ARM_SWITCH) + 1)
 
+#define ENABLE_ARMING_TRACE
+
+#ifdef ENABLE_ARMING_TRACE
+#define SET_ARMING_DISABLED(flag) setArmingAdvDisabled(flag, "Unknown", __FILE__, __LINE__)
+#define UNSET_ARMING_DISABLED(flag) unsetArmingAdvDisabled(flag, "Unknown", __FILE__, __LINE__)
+void setArmingAdvDisabled(armingDisableFlags_e flag, const char *reason, const char *filename, int line);
+void unsetArmingAdvDisabled(armingDisableFlags_e flag, const char *reason, const char *filename, int line);
+#else
+#define SET_ARMING_DISABLED(flag) setArmingDisabled(flag)
+#define UNSET_ARMING_DISABLED(flag) unsetArmingDisabled(flag)
 void setArmingDisabled(armingDisableFlags_e flag);
 void unsetArmingDisabled(armingDisableFlags_e flag);
+#endif
+
 bool isArmingDisabled(void);
 armingDisableFlags_e getArmingDisableFlags(void);
 const char *getArmingDisableFlagName(armingDisableFlags_e flag);

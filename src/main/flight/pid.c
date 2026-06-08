@@ -676,7 +676,7 @@ static FAST_CODE_NOINLINE void detectAndSetCrashRecovery(
                 && fabsf(errorRate) > pidRuntime.crashGyroThreshold
                 && fabsf(getSetpointRate(axis)) < pidRuntime.crashSetpointThreshold) {
                 if (crash_recovery == PID_CRASH_RECOVERY_DISARM) {
-                    setArmingDisabled(ARMING_DISABLED_CRASH_DETECTED);
+                    SET_ARMING_DISABLED(ARMING_DISABLED_CRASH_DETECTED);
                     disarm(DISARM_REASON_CRASH_PROTECTION);
                 } else {
                     pidRuntime.inCrashRecoveryMode = true;
@@ -873,7 +873,7 @@ static FAST_CODE_NOINLINE void disarmOnImpact(void)
         // and disarm if jerk exceeds threshold...
         if ((acc.jerkMagnitude * lowAltitudeSensitivity) > pidRuntime.landingDisarmThreshold) {
             // then disarm
-            setArmingDisabled(ARMING_DISABLED_ARM_SWITCH); // NB: need a better message
+            SET_ARMING_DISABLED(ARMING_DISABLED_ARM_SWITCH); // NB: need a better message
             disarm(DISARM_REASON_LANDING);
             // note: threshold should be high enough to avoid unwanted disarms in the air on throttle chops, eg around 10
         }
