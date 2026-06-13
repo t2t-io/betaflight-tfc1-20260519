@@ -28,6 +28,7 @@
 #include <stdint.h>
 
 #include "platform.h"
+#include "build/debug_print.h"
 
 #ifdef USE_MAG_MMC560X
 
@@ -134,6 +135,11 @@
 #define MMC560X_ZERO_FIELD              131072
 #define MMC560X_COUNTS_PER_GAUSS        16384.0f
 
+#ifdef USE_MAG_MMC560X_ASYNC_READ
+static uint8_t m_read_buf[9];
+static bool m_read_in_progress = false;
+#endif
+
 /**
  * @brief Initialize the MMC560X magnetometer.
  *
@@ -192,6 +198,12 @@ static bool mmc560xInit(magDev_t *magDev)
         return false;
     }
 
+#ifdef USE_MAG_MMC560X_ASYNC_READ
+    DBG("MMC560X Async Read: Enabled");
+#else
+    DBG("MMC560X Async Read: Disabled");
+#endif
+
     magDev->magOdrHz = 100;
     return true;
 }
@@ -208,17 +220,58 @@ static bool mmc560xInit(magDev_t *magDev)
  */
 static bool mmc560xRead(magDev_t *magDev, int16_t *magData)
 {
+#ifdef USE_MAG_MMC560X_ASYNC_READ
+    uint8_t *buf = m_read_buf;
+#else
     uint8_t buf[9];  // 9 bytes for full 18-bit data
+#endif
     extDevice_t *dev = &magDev->dev;
 
     // In continuous mode at 100Hz, data should always be available
     // Just read the data directly without checking status
-    
+
+#ifdef USE_MAG_MMC560X_ASYNC_READ
+    // The feature has one concern: In barometer_bmp5xx.c, the implementation has one comment:
+    //
+    //     `Use synchronous read for I2C - async reads can get stuck on PICO`
+    //
+    // [TODO] Need to verify if async read can work reliably on PICO for MMC560X. If it can work 
+    //        reliably, then we can use async read to avoid blocking I2C read which may cause 
+    //        issues on PICO. If async read cannot work reliably, then we should fall back to 
+    //        synchronous read to ensure data can be read correctly from the sensor.
+
+    // In compass.c, it already checks if the bus is busy before calling read, so we 
+    // can attempt an async read here without additional checks
+    if (m_read_in_progress) {
+        // Previous async read is still in progress, checks bus is busy to decide 
+        // the previous read has completed or not. If bus is busy, it means the previous read 
+        // is still in progress, so we should not start a new read and just return false to indicate 
+        // no new data is available yet.
+        if (busBusy(dev, NULL)) {
+            return false; // Previous read still in progress, no new data available yet
+        }
+        else {
+            // Previous read has completed, process the data
+            m_read_in_progress = false;
+        }
+    }
+    else {
+        if (busReadRegisterBufferStart(dev, MMC560X_REG_XOUT0, buf, 9)) {
+            // Successfully started async read, mark it as in progress and return false to indicate data is not ready yet
+            m_read_in_progress = true;
+            return false; // Async read started, data will be available on next call
+        }
+        else {
+            return false; // Failed to start async read
+        }
+    }
+#else
     // Read all 9 bytes of magnetic data (18-bit resolution)
     // Registers 0x00-0x08: X[17:10], X[9:2], Y[17:10], Y[9:2], Z[17:10], Z[9:2], X[1:0], Y[1:0], Z[1:0]
     if (!busReadRegisterBuffer(dev, MMC560X_REG_XOUT0, buf, 9)) {
         return false;
     }
+#endif /* USE_MAG_MMC560X_ASYNC_READ */
 
     // Reconstruct 18-bit values
     // High part: [17:10] from OUT0, [9:2] from OUT1, [1:0] from OUT2
