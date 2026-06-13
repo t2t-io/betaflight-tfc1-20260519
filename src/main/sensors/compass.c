@@ -461,9 +461,12 @@ bool compassIsCalibrationComplete(void)
     return !magCalProcessActive;
 }
 
+#define DBG_COMPASS_TIMING   (0)
+#if (DBG_COMPASS_TIMING)
 static timeUs_t m_last_dump = 0;
 static int m_bus_busy_count = 0;
 static int m_read_state_no_data_count = 0;
+#endif
 
 uint32_t compassUpdate(timeUs_t currentTimeUs)
 {
@@ -475,12 +478,14 @@ uint32_t compassUpdate(timeUs_t currentTimeUs)
     bool checkBusBusy = busBusy(&magDev.dev, NULL);
     DEBUG_SET(DEBUG_MAG_TASK_RATE, 4, checkBusBusy);
     if (checkBusBusy) {
+#if (DBG_COMPASS_TIMING)
         m_bus_busy_count++;
         if (cmpTimeUs(currentTimeUs, m_last_dump) > 1000) {
             m_last_dump = currentTimeUs;
             DBG("compass bus busy count in the past 1000us: %d", m_bus_busy_count);
             m_bus_busy_count = 0;
         }
+#endif
         // No action is taken, as the bus was busy.
         schedulerIgnoreTaskExecRate();
         return COMPASS_BUS_BUSY_INTERVAL_US; // come back in 500us, maybe the bus won't be busy then
@@ -489,12 +494,14 @@ uint32_t compassUpdate(timeUs_t currentTimeUs)
     bool checkReadState = !magDev.read(&magDev, magADCRaw);
     DEBUG_SET(DEBUG_MAG_TASK_RATE, 5, checkReadState);
     if (checkReadState) {
+#if (DBG_COMPASS_TIMING)
         m_read_state_no_data_count++;
         if (cmpTimeUs(currentTimeUs, m_last_dump) > 1000) {
             m_last_dump = currentTimeUs;
             DBG("compass read state no data count in the past 1000us: %d", m_read_state_no_data_count);
             m_read_state_no_data_count = 0;
         }
+#endif
         // The compass reported no data available to be retrieved; it may use a state engine that has more than one read state
         schedulerIgnoreTaskExecRate();
         return COMPASS_RECHECK_INTERVAL_US; // come back in 1ms, maybe data will be available then
@@ -600,35 +607,37 @@ uint32_t compassUpdate(timeUs_t currentTimeUs)
         DEBUG_SET(DEBUG_MAG_TASK_RATE, 3, executeTimeUs); // time in uS to complete the mag task
     }
     else {
-        // static timeMs_t m_last_dump = 0;
-        // static int m_total_readings = 0;
-        // static timeDelta_t m_total_execution_time_us = 0;
-        // static timeDelta_t m_max_execution_time_us = 0;
-        // static timeDelta_t m_min_execution_time_us = 0;
-        // timeMs_t now = millis();
-        // timeDelta_t executeTimeUs = micros() - currentTimeUs;
-        // m_total_readings++;
-        // m_total_execution_time_us += executeTimeUs;
-        // if (executeTimeUs > m_max_execution_time_us) {
-        //     m_max_execution_time_us = executeTimeUs;
-        // }
-        // if (m_min_execution_time_us == 0 || executeTimeUs < m_min_execution_time_us) {
-        //     m_min_execution_time_us = executeTimeUs;
-        // }
-        // if (cmpTimeMs(now, m_last_dump) > 1000) {
-        //     timeDelta_t average_execution_time_us = m_total_execution_time_us / m_total_readings;
-        //     const uint16_t actualCompassDataRateHz = 1e6f / average_execution_time_us;
-        //     DBG("<%u> Compass Task Execution Time (us): avg=%u, max=%u, min=%u (%u Hz)", 
-        //         m_last_dump, average_execution_time_us, 
-        //         m_max_execution_time_us, m_min_execution_time_us, 
-        //         actualCompassDataRateHz
-        //     );
-        //     m_last_dump = now;
-        //     m_total_readings = 0;
-        //     m_total_execution_time_us = 0;
-        //     m_max_execution_time_us = 0;
-        //     m_min_execution_time_us = 0;
-        // }
+#if (DBG_COMPASS_TIMING)
+        static timeMs_t m_last_dump = 0;
+        static int m_total_readings = 0;
+        static timeDelta_t m_total_execution_time_us = 0;
+        static timeDelta_t m_max_execution_time_us = 0;
+        static timeDelta_t m_min_execution_time_us = 0;
+        timeMs_t now = millis();
+        timeDelta_t executeTimeUs = micros() - currentTimeUs;
+        m_total_readings++;
+        m_total_execution_time_us += executeTimeUs;
+        if (executeTimeUs > m_max_execution_time_us) {
+            m_max_execution_time_us = executeTimeUs;
+        }
+        if (m_min_execution_time_us == 0 || executeTimeUs < m_min_execution_time_us) {
+            m_min_execution_time_us = executeTimeUs;
+        }
+        if (cmpTimeMs(now, m_last_dump) > 1000) {
+            timeDelta_t average_execution_time_us = m_total_execution_time_us / m_total_readings;
+            const uint16_t actualCompassDataRateHz = 1e6f / average_execution_time_us;
+            DBG("<%u> Compass Task Execution Time (us): avg=%u, max=%u, min=%u (%u Hz)", 
+                m_last_dump, average_execution_time_us, 
+                m_max_execution_time_us, m_min_execution_time_us, 
+                actualCompassDataRateHz
+            );
+            m_last_dump = now;
+            m_total_readings = 0;
+            m_total_execution_time_us = 0;
+            m_max_execution_time_us = 0;
+            m_min_execution_time_us = 0;
+        }
+#endif
     }
 
     // don't do the next read check until compassReadIntervalUs has expired
