@@ -25,6 +25,7 @@
 #include "platform.h"
 
 #include "build/debug.h"
+#include "build/debug_print.h"
 
 #include "cli/cli.h"
 
@@ -32,6 +33,7 @@
 
 #include "common/color.h"
 #include "common/utils.h"
+#include "common/time.h"
 
 #include "config/feature.h"
 
@@ -279,12 +281,17 @@ static void taskUpdateBaro(timeUs_t currentTimeUs)
 #endif
 
 #ifdef USE_MAG
+// extern bool g_debug_compass;
 static void taskUpdateMag(timeUs_t currentTimeUs)
 {
     UNUSED(currentTimeUs);
 
     if (sensors(SENSOR_MAG)) {
         const uint32_t newDeadline = compassUpdate(currentTimeUs);
+        // timeUs_t duration = micros() - currentTimeUs;
+        // if (g_debug_compass) {
+        //     DBG("compassUpdate took %u us", duration);
+        // }
         if (newDeadline != 0) {
             rescheduleTask(TASK_SELF, newDeadline);
         }

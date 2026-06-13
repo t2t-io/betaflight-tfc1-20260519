@@ -23,6 +23,7 @@
 #include <stdint.h>
 #include <string.h>
 
+#include "build/debug_print.h"
 #include "platform.h"
 
 #if defined(USE_I2C) && !defined(USE_SOFT_I2C)
@@ -123,6 +124,7 @@ void i2cPinConfigure(const i2cConfig_t *i2cConfig)
             pDev->reg = hardware->reg;
             pDev->pullUp = i2cConfig[device].pullUp;
             pDev->clockSpeed = i2cConfig[device].clockSpeed;
+            DBG("I2C device %d configured on pins SCL=%d, SDA=%d, speed=%d", device, confSclPin, confSdaPin, pDev->clockSpeed);
         }
     }
 }

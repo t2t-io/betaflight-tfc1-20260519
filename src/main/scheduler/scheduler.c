@@ -32,6 +32,7 @@
 
 #include "build/build_config.h"
 #include "build/debug.h"
+#include "build/debug_print.h"
 
 #include "common/maths.h"
 #include "common/time.h"
@@ -392,6 +393,13 @@ void schedulerInit(void)
 }
 
 static timeDelta_t taskNextStateTime;
+static bool m_compass_execution_time_logged = false;
+static int m_compass_learning_late_count1 = 0;
+static int m_compass_learning_late_count2 = 0;
+static int m_compass_learning_late_count3 = 0;
+static int m_compass_learning_late_count4 = 0;
+static int m_compass_learning_late_count5 = 0;
+static int m_compass_last_task_age_periods = 0;
 
 FAST_CODE void schedulerSetNextStateTime(timeDelta_t nextStateTime)
 {
@@ -436,12 +444,32 @@ FAST_CODE timeUs_t schedulerExecuteTask(task_t *selectedTask, timeUs_t currentTi
         // Update estimate of expected task duration
         if (taskNextStateTime != -1) {
             selectedTask->anticipatedExecutionTime = taskNextStateTime << TASK_EXEC_TIME_SHIFT;
+            if (m_compass_execution_time_logged) {
+                m_compass_learning_late_count1++;
+            }
         } else if (!ignoreCurrentTaskExecTime) {
             if (taskExecutionTimeUs > (selectedTask->anticipatedExecutionTime >> TASK_EXEC_TIME_SHIFT)) {
                 selectedTask->anticipatedExecutionTime = taskExecutionTimeUs << TASK_EXEC_TIME_SHIFT;
+                if (m_compass_execution_time_logged) {
+                    m_compass_learning_late_count2++;
+                }
+                // if (selectedTask->attribute->taskName && strcmp(selectedTask->attribute->taskName, "COMPASS") == 0) {
+                //     DBG("COMPASS LEARN exec=%u anticipated=%u\n", 
+                //             taskExecutionTimeUs,
+                //             selectedTask->anticipatedExecutionTime >> TASK_EXEC_TIME_SHIFT
+                //     );
+                // }
             } else if (selectedTask->anticipatedExecutionTime > 1) {
+                if (m_compass_execution_time_logged) {
+                    m_compass_learning_late_count3++;
+                }
                 // Slowly decay the max time
                 selectedTask->anticipatedExecutionTime--;
+            }
+        }
+        else {
+            if (m_compass_execution_time_logged) {
+                m_compass_learning_late_count4++;
             }
         }
 
@@ -757,7 +785,9 @@ FAST_CODE void scheduler(void)
         checkCycles = cmpTimeCycles(getCycleCounter(), nowCycles);
 
         if (selectedTask) {
-            // Recheck the available time as checkCycles is only approximate
+            taskId_e id = selectedTask - tasks;
+
+        // Recheck the available time as checkCycles is only approximate
             timeDelta_t taskRequiredTimeUs = selectedTask->anticipatedExecutionTime >> TASK_EXEC_TIME_SHIFT;
 #if defined(USE_LATE_TASK_STATISTICS)
             selectedTask->execTime = taskRequiredTimeUs;
@@ -770,22 +800,84 @@ FAST_CODE void scheduler(void)
             // Allow a little extra time
             taskRequiredTimeCycles += taskGuardCycles;
 
+            static int32_t m_compass_sched_loop_remaining_cycles_sum = 0;
+            static int32_t m_compass_sched_loop_remaining_cycles_max = 0;
+            static int32_t m_compass_sched_loop_remaining_cycles_min = 65535;
+            static int32_t m_compass_sched_loop_count = 0;
+
+            if (id == TASK_COMPASS) {
+                m_compass_sched_loop_remaining_cycles_sum += schedLoopRemainingCycles;
+                m_compass_sched_loop_count++;
+                if (schedLoopRemainingCycles > m_compass_sched_loop_remaining_cycles_max) {
+                    m_compass_sched_loop_remaining_cycles_max = schedLoopRemainingCycles;
+                }
+                if (schedLoopRemainingCycles < m_compass_sched_loop_remaining_cycles_min) {
+                    m_compass_sched_loop_remaining_cycles_min = schedLoopRemainingCycles;
+                }
+            }
+
             if (!gyroEnabled || firstSchedulingOpportunity || (taskRequiredTimeCycles < schedLoopRemainingCycles)) {
+                m_compass_execution_time_logged = (id == TASK_COMPASS);
                 uint32_t antipatedEndCycles = nowCycles + taskRequiredTimeCycles;
-                taskExecutionTimeUs += schedulerExecuteTask(selectedTask, currentTimeUs);
+                timeUs_t executionTimeUs = schedulerExecuteTask(selectedTask, currentTimeUs);
+                m_compass_execution_time_logged = false;
+                taskExecutionTimeUs += executionTimeUs;
                 nowCycles = getCycleCounter();
                 int32_t cyclesOverdue = cmpTimeCycles(nowCycles, antipatedEndCycles);
 
+                // if (id == TASK_GYRO || id == TASK_COMPASS || id == TASK_BARO) {
+                //     if (cmpTimeMs(now, m_last_dump) > 1000) {
+                //         m_last_dump = now;
+                //         DBG("regular: <%s> taskRequiredTimeUs = %u, executionTimeUs = %u, cyclesOverdue = %d, antipatedEndCycles = %u", 
+                //             selectedTask->attribute->taskName, taskRequiredTimeUs, executionTimeUs, cyclesOverdue, antipatedEndCycles);
+                //     }
+                // }
+
 #if defined(USE_LATE_TASK_STATISTICS)
                 if (cyclesOverdue > 0) {
-                    if ((currentTask - tasks) != TASK_SERIAL) {
-                        DEBUG_SET(DEBUG_SCHEDULER_DETERMINISM, 1, currentTask - tasks);
+                    static timeMs_t m_last_dump = 0;
+                    timeMs_t now = millis();
+                    if (id != TASK_SERIAL) {
+                        DEBUG_SET(DEBUG_SCHEDULER_DETERMINISM, 1, id);
                         DEBUG_SET(DEBUG_SCHEDULER_DETERMINISM, 2, clockCyclesTo10thMicros(cyclesOverdue));
                         currentTask->lateCount++;
                         lateTaskCount++;
                         lateTaskTotal += cyclesOverdue;
+                        if (id == TASK_COMPASS) {
+                            if (cmpTimeMs(now, m_last_dump) > 1000) {
+                                timeDelta_t taskRequiredTimeUs_after = selectedTask->anticipatedExecutionTime >> TASK_EXEC_TIME_SHIFT;
+                                m_last_dump = now;
+                                DBG("late: <%s> now=%u taskRequiredTimeUs = %u (%u), executionTimeUs = %u, cyclesOverdue = %d, antipatedEndCycles = %u, learning = %d,%d,%d,%d,%d, taskAgePeriods=%d, desiredPeriodCycles=%u(%u=%uus)", 
+                                    selectedTask->attribute->taskName, nowCycles, 
+                                    taskRequiredTimeUs, taskRequiredTimeUs_after, 
+                                    executionTimeUs, 
+                                    cyclesOverdue, antipatedEndCycles, 
+                                    m_compass_learning_late_count1, m_compass_learning_late_count2, m_compass_learning_late_count3, m_compass_learning_late_count4, m_compass_learning_late_count5,
+                                    selectedTask->taskAgePeriods,
+                                    desiredPeriodCycles, 
+                                    clockMicrosToCycles((uint32_t)getTask(TASK_GYRO)->attribute->desiredPeriodUs),
+                                    getTask(TASK_GYRO)->attribute->desiredPeriodUs
+                                );
+                                m_compass_learning_late_count1 = 0;
+                                m_compass_learning_late_count2 = 0;
+                                m_compass_learning_late_count3 = 0;
+                                m_compass_learning_late_count4 = 0;
+                                m_compass_learning_late_count5 = 0;
+                                m_compass_last_task_age_periods = 0;
+                                int32_t rc_max_us = clockCyclesToMicros(m_compass_sched_loop_remaining_cycles_max);
+                                int32_t rc_min_us = clockCyclesToMicros(m_compass_sched_loop_remaining_cycles_min);
+                                int32_t rc_avg_us = clockCyclesToMicros(m_compass_sched_loop_remaining_cycles_sum/m_compass_sched_loop_count);
+                                DBG("compass: scheduled-loop-remaining cycles: count=%d avg=%dus min=%dus max=%dus\n", 
+                                    m_compass_sched_loop_count, rc_avg_us, rc_min_us, rc_max_us);
+                                m_compass_sched_loop_remaining_cycles_sum = 0;
+                                m_compass_sched_loop_remaining_cycles_max = 0;
+                                m_compass_sched_loop_remaining_cycles_min = 65535;
+                                m_compass_sched_loop_count = 0;
+                            }
+                        }
                     }
                 }
+
 #endif  // USE_LATE_TASK_STATISTICS
 
                 if ((currentTask - tasks) == TASK_RX) {
@@ -815,6 +907,10 @@ FAST_CODE void scheduler(void)
                 // If a task has been unable to run, then reduce it's recorded estimated run time to ensure
                 // it's ultimate scheduling
                 selectedTask->anticipatedExecutionTime *= TASK_AGE_EXPEDITE_SCALE;
+                if (id == TASK_COMPASS) {
+                    m_compass_learning_late_count5++;
+                    m_compass_last_task_age_periods = selectedTask->taskAgePeriods;
+                }
             }
         }
     }
