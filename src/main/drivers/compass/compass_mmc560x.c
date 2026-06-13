@@ -231,15 +231,37 @@ static bool mmc560xRead(magDev_t *magDev, int16_t *magData)
     // Just read the data directly without checking status
 
 #ifdef USE_MAG_MMC560X_ASYNC_READ
+    // Using sync i2c read takes around 160us to complete, which can cause LOAD issue to 
+    // disable ARMING.
+    //      MMC5603 data size: 9 bytes (3 bytes per axis)
+    //      Extra bytes: 2 ~ 3 bytes (status register, control register, etc.)
+    //      800KHz I2C bus → 1 bit takes 1.25us → 11-12 bytes takes around 108us (1.25 * 8 * 11-12)
+    //      Considering ACK: 108us * 1.25 (25% overhead for ACK) = 135us
+    //      Other overheads: 140 ~ 180us (e.g. i2c start, driver overhead, register handling, etc)
+    // 
+    // But, the remaining cpu cycles after Gyro/PID execution is around 77us (in max), that means
+    // Mag task update is always treated as "LATE" task because 160us > 77us, which causes LOAD issue to 
+    // disable ARMING. That's why we want to use async read to start the i2c read and return immediately 
+    // without waiting for the read to complete, then check the read completion in the next Mag task update. 
+    // This way, we can avoid blocking i2c read and reduce the Mag task execution time, which should 
+    // help to avoid LOAD issue on PICO.
+    // 
     // The feature has one concern: In barometer_bmp5xx.c, the implementation has one comment:
     //
     //     `Use synchronous read for I2C - async reads can get stuck on PICO`
     //
+    // sensors/barometer.c does not have such issue even it uses sync i2c read. For example, in barometer_bmp5xx.c, 
+    // it uses synchronous read to read 6 bytes of data that takes around 120us, but it does not cause LOAD issue.
+    // The reason is because barometer separates `i2c read data` and `data calculation` into two times of task update
+    // function call. So, even the `i2c read data` takes around 120us, the next task update function call for `data calculation` 
+    // will take very short time because it only does data parsing and calculation without i2c read.
+    // So, only half times of task update function call takes long time (120us), that will not cause LOAD issue.
+
     // [TODO] Need to verify if async read can work reliably on PICO for MMC560X. If it can work 
     //        reliably, then we can use async read to avoid blocking I2C read which may cause 
     //        issues on PICO. If async read cannot work reliably, then we should fall back to 
     //        synchronous read to ensure data can be read correctly from the sensor.
-
+    // 
     // In compass.c, it already checks if the bus is busy before calling read, so we 
     // can attempt an async read here without additional checks
     if (m_read_in_progress) {
