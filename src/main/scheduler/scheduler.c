@@ -43,6 +43,8 @@
 
 #include "fc/core.h"
 #include "fc/tasks.h"
+#include "fc/runtime_config.h"
+#include "fc/rc_controls.h"
 
 #include "rx/rx.h"
 #include "flight/failsafe.h"
@@ -701,7 +703,15 @@ FAST_CODE void scheduler(void)
     schedLoopRemainingCycles = cmpTimeCycles(nextTargetCycles, nowCycles);
 
     if (!gyroEnabled || (schedLoopRemainingCycles > (int32_t)clockMicrosToCycles(CHECK_GUARD_MARGIN_US))) {
+        static timeUs_t lastCheckTimeUs = 0;
         currentTimeUs = micros();
+
+        // Invoked per second
+        if (cmpTimeUs(currentTimeUs, lastCheckTimeUs) > 1000000) {
+            lastCheckTimeUs = currentTimeUs;
+            dumpArmingDisableFlags();
+            dumpRcData();
+        }
 
         // Update task dynamic priorities
         for (task_t *task = queueFirst(); task != NULL; task = queueNext()) {

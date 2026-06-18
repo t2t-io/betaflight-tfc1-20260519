@@ -78,6 +78,7 @@ void unsetArmingDisabled(armingDisableFlags_e flag);
 bool isArmingDisabled(void);
 armingDisableFlags_e getArmingDisableFlags(void);
 const char *getArmingDisableFlagName(armingDisableFlags_e flag);
+void dumpArmingDisableFlags(void);
 
 typedef enum {
     ANGLE_MODE      = (1 << 0),

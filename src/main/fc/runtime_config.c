@@ -24,6 +24,8 @@
 
 #include "platform.h"
 
+#include "build/debug_print.h"
+
 #include "fc/runtime_config.h"
 #include "io/beeper.h"
 
@@ -99,6 +101,34 @@ const char *getArmingDisableFlagName(armingDisableFlags_e flag)
     }
     unsigned idx = ffs(flag & -flag) - 1;   // use LSB if there are multiple bits set
     return idx < ARRAYLEN(armingDisableFlagNames) ? armingDisableFlagNames[idx] : "UNKNOWN";
+}
+
+void dumpArmingDisableFlags(void)
+{
+    static char m_display_string[256] = {0};
+    memset(m_display_string, 0, sizeof(m_display_string));
+    for (unsigned i = 0; i < ARMING_DISABLE_FLAGS_COUNT; i++) {
+        armingDisableFlags_e flag = (1 << i);
+        if (armingDisableFlags & flag) {
+            const char *name = getArmingDisableFlagName(flag);
+            if (strlen(m_display_string) + strlen(name) + 2 < sizeof(m_display_string)) {
+                if (m_display_string[0] != '\0') {
+                    strcat(m_display_string, ", ");
+                }
+                strcat(m_display_string, name);
+            } else {
+                // Not enough space to add more names, truncate with ellipsis
+                if (strlen(m_display_string) + 4 < sizeof(m_display_string)) {
+                    if (m_display_string[0] != '\0') {
+                        strcat(m_display_string, ", ");
+                    }
+                    strcat(m_display_string, "...");
+                }
+                break;
+            }
+        }
+    }
+    DBG("Arming disabled flags: %s", m_display_string[0] ? m_display_string : "NONE");
 }
 
 /**

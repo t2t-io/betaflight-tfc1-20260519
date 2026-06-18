@@ -28,6 +28,7 @@
 
 #include "build/build_config.h"
 #include "build/debug.h"
+#include "build/debug_print.h"
 
 #include "common/maths.h"
 #include "common/utils.h"
@@ -369,6 +370,9 @@ void rxInit(void)
             rcData[modeActivationCondition->auxChannelIndex + NON_AUX_CHANNEL_COUNT] = value;
         }
     }
+
+    DBG("rxConfig()->rx_min_usec: %u, rxConfig()->rx_max_usec: %u", rxConfig()->rx_min_usec, rxConfig()->rx_max_usec);
+    DBG("rxConfig()->mincheck: %u", rxConfig()->mincheck);
 
     switch (rxRuntimeState.rxProvider) {
     default:

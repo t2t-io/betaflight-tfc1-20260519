@@ -22,6 +22,7 @@
 #include <stdint.h>
 
 #include "platform.h"
+#include "build/debug_print.h"
 
 #ifdef USE_RX_MSP
 
@@ -48,6 +49,8 @@ float rxMspReadRawRC(const rxRuntimeState_t *rxRuntimeState, uint8_t chan)
  */
 void rxMspFrameReceive(const uint16_t *frame, int channelCount)
 {
+    // DBG("Received MSP frame with %d channels", channelCount);
+
     for (int i = 0; i < channelCount; i++) {
         mspFrame[i] = frame[i];
     }
