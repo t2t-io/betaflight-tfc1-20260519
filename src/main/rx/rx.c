@@ -374,6 +374,11 @@ void rxInit(void)
     DBG("rxConfig()->rx_min_usec: %u, rxConfig()->rx_max_usec: %u", rxConfig()->rx_min_usec, rxConfig()->rx_max_usec);
     DBG("rxConfig()->mincheck: %u", rxConfig()->mincheck);
 
+    for (int i = 0; i < RX_MAPPABLE_CHANNEL_COUNT; i++) {
+        int mapped_channel = rxConfig()->rcmap[i];
+        DBG("Channel %d mapped to %d", i, mapped_channel);
+    }
+
     switch (rxRuntimeState.rxProvider) {
     default:
 
@@ -1086,3 +1091,20 @@ bool isRssiConfigured(void)
     return rssiSource != RSSI_SOURCE_NONE;
 }
 
+void dumpRcData(void)
+{
+    DBG("rcData: %u, %u, %u, %u, %u, %u, %u, %u, THROTTLE = %u", 
+        (int)rcData[0], (int)rcData[1], (int)rcData[2], (int)rcData[3], 
+        (int)rcData[4], (int)rcData[5], (int)rcData[6], (int)rcData[7],
+        (int)rcData[THROTTLE]
+    );
+}
+
+void dumpRcRaw(void)
+{
+    DBG("rcRaw : %u, %u, %u, %u, %u, %u, %u, %u, THROTTLE = %u", 
+        (int)rcRaw[0], (int)rcRaw[1], (int)rcRaw[2], (int)rcRaw[3], 
+        (int)rcRaw[4], (int)rcRaw[5], (int)rcRaw[6], (int)rcRaw[7],
+        (int)rcRaw[THROTTLE]
+    );
+}

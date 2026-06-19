@@ -232,3 +232,6 @@ void resumeRxSignal(void);
 timeDelta_t rxGetFrameDelta(void);
 
 timeUs_t rxFrameTimeUs(void);
+
+void dumpRcData(void);
+void dumpRcRaw(void);

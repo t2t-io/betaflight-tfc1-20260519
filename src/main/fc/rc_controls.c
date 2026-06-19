@@ -135,13 +135,6 @@ throttleStatus_e calculateThrottleStatus(void)
     return THROTTLE_HIGH;
 }
 
-void dumpRcData(void)
-{
-    DBG("rcData: %u, %u, %u, %u, %u, %u, %u, %u", 
-        (int)rcData[0], (int)rcData[1], (int)rcData[2], (int)rcData[3], 
-        (int)rcData[4], (int)rcData[5], (int)rcData[6], (int)rcData[7]);
-}
-
 #define ARM_DELAY_MS        500
 #define STICK_DELAY_MS      50
 #define STICK_AUTOREPEAT_MS 250

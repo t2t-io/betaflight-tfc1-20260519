@@ -710,6 +710,7 @@ FAST_CODE void scheduler(void)
         if (cmpTimeUs(currentTimeUs, lastCheckTimeUs) > 1000000) {
             lastCheckTimeUs = currentTimeUs;
             dumpArmingDisableFlags();
+            dumpRcRaw();
             dumpRcData();
         }
 
